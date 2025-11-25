@@ -1,0 +1,114 @@
+ * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #1f1c2c, #928dab);
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.search-container {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 800px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.title {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+  color: #f0f0f0;
+  text-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+}
+
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.search-label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+.search-input {
+  width: 70%;
+  padding: 0.8rem 1rem;
+  border-radius: 30px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.search-input:focus {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+}
+
+.meal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+  list-style: none;
+}
+
+
+.meal-card {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 1rem;
+  transition: transform 0.3s ease, background 0.3s ease;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.meal-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.meal-thumb {
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 0.8rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.meal-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.3rem;
+  color: #fff;
+}
+
+.meal-card p {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #ffcccc;
+  font-style: italic;
+  font-size: 1rem;
+}
