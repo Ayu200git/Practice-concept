@@ -1,0 +1,75 @@
+﻿node.exe : 
+[31mfailed to load 
+config from C:\Users
+\ayush\Desktop\Pract
+ice-concept\prisma-p
+ractice\turborepo-pr
+isma\apps\web\vite.c
+onfig.js[39m
+At C:\nvm4w\nodejs\n
+px.ps1:29 char:3
++   & $NODE_EXE 
+$NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo  
+            : NotS  
+  pecified: ([31   
+ mfailed to ....    
+config.js[39m:    
+String) [], Rem    
+oteException
+    + FullyQualifie 
+   dErrorId : Nati  
+  veCommandError
+ 
+[31merror during 
+build:
+Error [ERR_MODULE_NO
+T_FOUND]: Cannot 
+find package 
+'@tailwindcss/vite' 
+imported from C:\Use
+rs\ayush\Desktop\Pra
+ctice-concept\prisma
+-practice\turborepo-
+prisma\apps\web\node
+_modules\.vite-temp\
+vite.config.js.times
+tamp-1768822210965-a
+69bc8b8d78a6.mjs
+    at 
+packageResolve (node
+:internal/modules/es
+m/resolve:857:9)
+    at 
+moduleResolve (node:
+internal/modules/esm
+/resolve:926:18)
+    at 
+defaultResolve (node
+:internal/modules/es
+m/resolve:1056:11)
+    at ModuleLoader.
+defaultResolve (node
+:internal/modules/es
+m/loader:654:12)
+    at #cachedDefaul
+tResolve (node:inter
+nal/modules/esm/load
+er:603:25)
+    at ModuleLoader.
+resolve (node:intern
+al/modules/esm/loade
+r:586:38)
+    at ModuleLoader.
+getModuleJobForImpor
+t (node:internal/mod
+ules/esm/loader:242:
+38)
+    at 
+ModuleJob._link (nod
+e:internal/modules/e
+sm/module_job:135:49
+)[39m
+
