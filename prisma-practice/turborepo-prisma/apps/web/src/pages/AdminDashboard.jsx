@@ -88,7 +88,7 @@ const AdminDashboard = () => {
 
 const StatCard = ({ icon: Icon, label, value, color }) => {
     const colors = {
-        sky: 'bg-sky-50 text-sky-600',
+        sky: 'bg-primary-50 text-primary-600',
         indigo: 'bg-indigo-50 text-indigo-600',
         amber: 'bg-amber-50 text-amber-600',
         emerald: 'bg-emerald-50 text-emerald-600',
@@ -96,16 +96,17 @@ const StatCard = ({ icon: Icon, label, value, color }) => {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white p-6 rounded-3xl border border-slate-200 flex items-center space-x-4"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ y: -5 }}
+            className="bg-white p-6 rounded-3xl border border-slate-200 flex items-center space-x-4 transition-all hover:shadow-lg hover:shadow-slate-100"
         >
             <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${colors[color]}`}>
                 <Icon size={24} />
             </div>
             <div>
-                <p className="text-sm font-medium text-slate-500">{label}</p>
-                <p className="text-2xl font-bold text-slate-900">{value}</p>
+                <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+                <p className="text-3xl font-black text-slate-900">{value}</p>
             </div>
         </motion.div>
     );
@@ -130,7 +131,7 @@ const UserTable = ({ users, onTogglePermission }) => (
                         <td className="px-4 py-4 text-slate-600">{u.email}</td>
                         <td className="px-4 py-4">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'ADMIN' ? 'bg-rose-100 text-rose-600' :
-                                    u.role === 'SUB_ADMIN' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'
+                                u.role === 'SUB_ADMIN' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'
                                 }`}>
                                 {u.role}
                             </span>
@@ -149,8 +150,8 @@ const UserTable = ({ users, onTogglePermission }) => (
                                 <button
                                     onClick={() => onTogglePermission(u.id, 'CREATE_USER', u.permissions.some(p => p.name === 'CREATE_USER'))}
                                     className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${u.permissions.some(p => p.name === 'CREATE_USER')
-                                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                        ? 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                                         }`}
                                 >
                                     {u.permissions.some(p => p.name === 'CREATE_USER') ? 'Revoke Create User' : 'Grant Create User'}

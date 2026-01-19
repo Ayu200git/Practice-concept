@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import AdminDashboard from './pages/AdminDashboard';
 import SubAdminDashboard from './pages/SubAdminDashboard';
+import UserDashboard from './pages/UserDashboard';
 import PostsFeed from './pages/PostsFeed';
 
 // Components
@@ -35,7 +36,18 @@ const AppContent = () => {
               <DashboardLayout>
                 {user?.role === 'ADMIN' ? <AdminDashboard /> :
                   user?.role === 'SUB_ADMIN' ? <SubAdminDashboard /> :
-                    <PostsFeed />}
+                    <UserDashboard />}
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['USER']}>
+              <DashboardLayout>
+                <UserDashboard />
               </DashboardLayout>
             </ProtectedRoute>
           }
