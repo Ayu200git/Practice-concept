@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
-import { Users, FileText, UserPlus, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
+import { Users, FileText, UserPlus, ShieldAlert, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { io } from 'socket.io-client';
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState({ totalUsers: 0, totalPosts: 0 });
@@ -10,9 +11,33 @@ const AdminDashboard = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('users');
+    const [managingPermissionsId, setManagingPermissionsId] = useState(null); // ID of sub-admin being managed
+
+    const ALL_PERMISSIONS = [
+        { name: 'CREATE_USER', label: 'Create Users', description: 'Allow sub-admin to register new users' },
+        { name: 'UPDATE_USER', label: 'Update Users', description: 'Allow sub-admin to edit user details' },
+        { name: 'DELETE_USER', label: 'Delete Users', description: 'Allow sub-admin to remove users' },
+        { name: 'UPDATE_POST', label: 'Update Posts', description: 'Allow sub-admin to edit any post' },
+        { name: 'DELETE_POST', label: 'Delete Posts', description: 'Allow sub-admin to remove any post' },
+    ];
 
     useEffect(() => {
         fetchData();
+
+        // Initialize Socket.io
+        const socket = io();
+
+        const handleRealTimeUpdate = () => {
+            fetchData();
+        };
+
+        socket.on('postCreated', handleRealTimeUpdate);
+        socket.on('postUpdated', handleRealTimeUpdate);
+        socket.on('postDeleted', handleRealTimeUpdate);
+
+        return () => {
+            socket.disconnect();
+        };
     }, []);
 
     const fetchData = async () => {
@@ -33,6 +58,17 @@ const AdminDashboard = () => {
     };
 
     const togglePermission = async (userId, permissionName, currentEnabled) => {
+        const previousUsers = [...users];
+        setUsers(currentUsers => currentUsers.map(user => {
+            if (user.id === userId) {
+                const updatedPermissions = currentEnabled
+                    ? user.permissions.filter(p => p.name !== permissionName)
+                    : [...user.permissions, { id: Date.now(), name: permissionName }];
+                return { ...user, permissions: updatedPermissions };
+            }
+            return user;
+        }));
+
         try {
             await api.patch('/admin/allow-subadmin-user-creation', {
                 subAdminId: userId,
@@ -42,6 +78,7 @@ const AdminDashboard = () => {
             toast.success('Permission updated');
             fetchData();
         } catch (error) {
+            setUsers(previousUsers);
             toast.error('Failed to update permission');
         }
     };
@@ -84,10 +121,8 @@ const AdminDashboard = () => {
                 </div>
             </div>
         ), {
-            duration: Infinity,
-            style: {
-                maxWidth: '500px',
-            }
+            duration: 5000,
+            style: { maxWidth: '500px' }
         });
     };
 
@@ -129,7 +164,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
         ), {
-            duration: Infinity,
+            duration: 5000,
             style: { maxWidth: '500px' }
         });
     };
@@ -177,7 +212,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
         ), {
-            duration: Infinity,
+            duration: 5000,
             style: { maxWidth: '500px' }
         });
     };
@@ -212,7 +247,7 @@ const AdminDashboard = () => {
             setEditingUser(null);
             fetchData();
         } catch (error) {
-            // Error already handled by toast.promise
+
         }
     };
 
@@ -238,9 +273,10 @@ const AdminDashboard = () => {
             setEditingPost(null);
             fetchData();
         } catch (error) {
-            // Error already handled by toast.promise
         }
     };
+
+    const activeSubAdmin = users.find(u => u.id === managingPermissionsId);
 
     if (loading) return <div className="flex justify-center py-20">Loading...</div>;
 
@@ -301,7 +337,7 @@ const AdminDashboard = () => {
                     {activeTab === 'subadmins' && (
                         <SubAdminTable
                             subAdmins={users.filter(u => u.role === 'SUB_ADMIN')}
-                            onTogglePermission={togglePermission}
+                            onManagePermissions={(admin) => setManagingPermissionsId(admin.id)}
                             onRemoveSubAdmin={removeSubAdmin}
                             onCreateClick={() => setActiveTab('create')}
                         />
@@ -324,9 +360,73 @@ const AdminDashboard = () => {
                     )}
                 </div>
             </div>
+
+            {/* Permissions Modal */}
+            {activeSubAdmin && (
+                <PermissionModal
+                    admin={activeSubAdmin}
+                    allPermissions={ALL_PERMISSIONS}
+                    onToggle={togglePermission}
+                    onClose={() => setManagingPermissionsId(null)}
+                />
+            )}
         </div>
     );
 };
+
+const PermissionModal = ({ admin, allPermissions, onToggle, onClose }) => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200"
+        >
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900">Manage Permissions</h3>
+                    <p className="text-sm text-slate-500">Configuring access for <span className="text-sky-600 font-semibold">{admin.name}</span></p>
+                </div>
+                <button onClick={onClose} className="p-2 hover:bg-white rounded-xl text-slate-400 hover:text-slate-600 transition-colors">
+                    <XCircle size={24} />
+                </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                {allPermissions.map((perm) => {
+                    const isEnabled = admin.permissions.some(p => p.name === perm.name);
+                    return (
+                        <div key={perm.name} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-transparent hover:border-sky-100 hover:bg-sky-50 transition-all group">
+                            <div className="flex items-center space-x-4">
+                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-colors ${isEnabled ? 'bg-sky-100 text-sky-600' : 'bg-slate-200 text-slate-400'}`}>
+                                    <CheckCircle2 size={20} />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-bold text-slate-900 group-hover:text-sky-700 transition-colors">{perm.label}</p>
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-tight font-semibold">{perm.name}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => onToggle(admin.id, perm.name, isEnabled)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${isEnabled ? 'bg-sky-600' : 'bg-slate-300'}`}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button
+                    onClick={onClose}
+                    className="px-6 py-2 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+                >
+                    Done
+                </button>
+            </div>
+        </motion.div>
+    </div>
+);
 
 const StatCard = ({ icon: Icon, label, value, color }) => {
     const colors = {
@@ -428,7 +528,7 @@ const UserTable = ({ users, onTogglePermission, onEditUser, onDeleteUser, editin
                                     <td className="px-4 py-4 text-slate-600">{u.email}</td>
                                     <td className="px-4 py-4">
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${u.role === 'ADMIN' ? 'bg-rose-100 text-rose-600' :
-                                                u.role === 'SUB_ADMIN' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'
+                                            u.role === 'SUB_ADMIN' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'
                                             }`}>
                                             {u.role}
                                         </span>
@@ -439,8 +539,8 @@ const UserTable = ({ users, onTogglePermission, onEditUser, onDeleteUser, editin
                                                 onClick={() => onEditUser(u)}
                                                 disabled={u.role === 'ADMIN'}
                                                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${u.role === 'ADMIN'
-                                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                        : 'bg-sky-50 text-sky-600 hover:bg-sky-100'
+                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                    : 'bg-sky-50 text-sky-600 hover:bg-sky-100'
                                                     }`}
                                             >
                                                 Update
@@ -449,8 +549,8 @@ const UserTable = ({ users, onTogglePermission, onEditUser, onDeleteUser, editin
                                                 onClick={() => onDeleteUser(u.id, u.name, u.role)}
                                                 disabled={u.role === 'ADMIN'}
                                                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${u.role === 'ADMIN'
-                                                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                                        : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                    : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
                                                     }`}
                                             >
                                                 Delete
@@ -566,7 +666,7 @@ const PostsTable = ({ posts, onDeletePost, onEditPost, editingPost, setEditingPo
     </div>
 );
 
-const SubAdminTable = ({ subAdmins, onTogglePermission, onRemoveSubAdmin, onCreateClick }) => (
+const SubAdminTable = ({ subAdmins, onManagePermissions, onRemoveSubAdmin, onCreateClick }) => (
     <div className="space-y-4">
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-800">Sub-Admin Management</h3>
@@ -595,62 +695,65 @@ const SubAdminTable = ({ subAdmins, onTogglePermission, onRemoveSubAdmin, onCrea
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-50 text-slate-700 uppercase text-xs border-b border-slate-200">
                         <tr>
-                            <th className="px-4 py-3 font-semibold">Name</th>
-                            <th className="px-4 py-3 font-semibold">Email</th>
-                            <th className="px-4 py-3 font-semibold">Permissions</th>
-                            <th className="px-4 py-3 font-semibold text-center">Create User Access</th>
+                            <th className="px-4 py-3 font-semibold">Sub-Admin Details</th>
+                            <th className="px-4 py-3 font-semibold">Status</th>
+                            <th className="px-4 py-3 font-semibold text-center">Permissions</th>
                             <th className="px-4 py-3 font-semibold text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {subAdmins.map((admin) => {
-                            const hasCreateUser = admin.permissions.some(p => p.name === 'CREATE_USER');
-                            return (
-                                <tr key={admin.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-4 py-4 font-medium text-slate-900">{admin.name}</td>
-                                    <td className="px-4 py-4 text-slate-600">{admin.email}</td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex flex-wrap gap-1">
+                        {subAdmins.map((admin) => (
+                            <tr key={admin.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-4">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
+                                            {admin.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900">{admin.name}</p>
+                                            <p className="text-xs text-slate-500">{admin.email}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-4">
+                                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 text-[10px] font-black uppercase tracking-wider">
+                                        Active
+                                    </span>
+                                </td>
+                                <td className="px-4 py-4">
+                                    <div className="flex flex-col items-center">
+                                        <div className="flex flex-wrap gap-1 justify-center mb-2 max-w-[200px]">
                                             {admin.permissions.map(p => (
-                                                <span key={p.id} className="bg-amber-50 text-amber-600 px-2 py-0.5 rounded text-[10px] font-bold">
-                                                    {p.name}
+                                                <span key={p.id} className="bg-sky-50 text-sky-600 px-2 py-0.5 rounded text-[10px] font-bold border border-sky-100">
+                                                    {p.name.replace('_', ' ')}
                                                 </span>
                                             ))}
                                             {admin.permissions.length === 0 && (
-                                                <span className="text-slate-400 text-xs">No permissions</span>
+                                                <span className="text-slate-400 text-[10px] font-medium italic">No access granted</span>
                                             )}
                                         </div>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center justify-center">
-                                            <button
-                                                onClick={() => onTogglePermission(admin.id, 'CREATE_USER', hasCreateUser)}
-                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasCreateUser ? 'bg-emerald-500' : 'bg-slate-300'
-                                                    }`}
-                                            >
-                                                <span
-                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hasCreateUser ? 'translate-x-6' : 'translate-x-1'
-                                                        }`}
-                                                />
-                                            </button>
-                                            <span className={`ml-3 text-xs font-bold ${hasCreateUser ? 'text-emerald-600' : 'text-slate-400'}`}>
-                                                {hasCreateUser ? 'Enabled' : 'Disabled'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center justify-center">
-                                            <button
-                                                onClick={() => onRemoveSubAdmin(admin.id, admin.name)}
-                                                className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold text-xs rounded-lg transition-all"
-                                            >
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
+                                        <button
+                                            onClick={() => onManagePermissions(admin)}
+                                            className="text-[10px] font-black uppercase tracking-widest text-sky-600 hover:text-sky-700 flex items-center bg-sky-50 px-3 py-1 rounded-lg border border-sky-100 transition-all"
+                                        >
+                                            <ShieldAlert size={12} className="mr-1" />
+                                            Manage Access
+                                        </button>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-4">
+                                    <div className="flex items-center justify-center">
+                                        <button
+                                            onClick={() => onRemoveSubAdmin(admin.id, admin.name)}
+                                            className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                            title="Remove Sub-Admin"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>
