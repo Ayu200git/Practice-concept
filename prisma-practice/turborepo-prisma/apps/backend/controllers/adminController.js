@@ -22,19 +22,17 @@ export const createSubAdmin = async (req, res) => {
     }
 };
 
-// Toggle permission (Industry Grade: Dynamic Link/Unlink)
+// Toggle permission
 export const toggleSubAdminPermission = async (req, res) => {
     try {
         const { subAdminId, permissionName, isEnabled } = req.body;
 
-        // 1. Ensure the permission name exists in the database
         const permission = await prisma.permission.upsert({
             where: { name: permissionName },
             update: {},
             create: { name: permissionName }
         });
 
-        // 2. Link or Unlink based on isEnabled
         const updatedUser = await prisma.user.update({
             where: { id: Number(subAdminId) },
             data: {
@@ -117,6 +115,100 @@ export const getStats = async (req, res) => {
         res.json({
             totalUsers: userCount,
             totalPosts: postCount
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const removeSubAdmin = async (req, res) => {
+    try {
+        const { subAdminId } = req.body;
+
+        const subAdmin = await prisma.user.findUnique({
+            where: { id: subAdminId },
+            include: { posts: true }
+        });
+
+        if (!subAdmin) return res.status(404).json({ error: 'Sub-admin not found' });
+        if (subAdmin.role !== 'SUB_ADMIN') return res.status(400).json({ error: 'User is not a sub-admin' });
+
+        if (subAdmin.posts.length > 0) {
+            await prisma.user.update({
+                where: { id: subAdminId },
+                data: { role: 'USER', permissions: { set: [] } }
+            });
+            res.json({ message: 'Sub-admin demoted to user', action: 'demoted' });
+        } else {
+            await prisma.user.delete({ where: { id: subAdminId } });
+            res.json({ message: 'Sub-admin removed', action: 'deleted' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+export const updateUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { name, email, role } = req.body;
+
+        const updatedUser = await prisma.user.update({
+            where: { id: Number(userId) },
+            data: {
+                ...(name && { name }),
+                ...(email && { email }),
+                ...(role && { role })
+            },
+            include: { permissions: true }
+        });
+
+        res.json({
+            message: 'User updated successfully',
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                permissions: updatedUser.permissions.map(p => p.name)
+            }
+        });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+export const deleteUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Check if user exists and get their posts
+        const user = await prisma.user.findUnique({
+            where: { id: Number(userId) },
+            include: { posts: true }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Prevent deleting ADMIN users
+        if (user.role === 'ADMIN') {
+            return res.status(403).json({ error: 'Cannot delete admin users' });
+        }
+
+        // Delete user (cascade will handle related data based on schema)
+        await prisma.user.delete({
+            where: { id: Number(userId) }
+        });
+
+        res.json({
+            message: 'User deleted successfully',
+            deletedUser: {
+                id: user.id,
+                email: user.email,
+                role: user.role
+            }
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
