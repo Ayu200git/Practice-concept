@@ -1,0 +1,30 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "apps/backend/api/index.js",
+            "use": "@vercel/node"
+        },
+        {
+            "src": "apps/web/package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "dist"
+            }
+        }
+    ],
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "apps/backend/api/index.js"
+        },
+        {
+            "source": "/socket.io/(.*)",
+            "destination": "apps/backend/api/index.js"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "apps/web/$1"
+        }
+    ]
+}
