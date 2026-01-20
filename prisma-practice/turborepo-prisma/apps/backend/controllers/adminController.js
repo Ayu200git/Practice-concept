@@ -152,13 +152,29 @@ export const updateUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const { name, email, role } = req.body;
+        console.log(`[AdminUpdateUser] TargetID: ${userId}, ReqUser:`, req.user);
+
+        const targetUser = await prisma.user.findUnique({
+            where: { id: Number(userId) }
+        });
+
+        if (!targetUser) {
+            console.error(`[AdminUpdateUser] Error: Target user not found`);
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Sub-admins can only update regular USERS
+        if (req.user.role === 'SUB_ADMIN' && targetUser.role !== 'USER') {
+            console.warn(`[AdminUpdateUser] Denied: Sub-admin tried to update ${targetUser.role}`);
+            return res.status(403).json({ error: 'Sub-admins can only manage regular users' });
+        }
 
         const updatedUser = await prisma.user.update({
             where: { id: Number(userId) },
             data: {
                 ...(name && { name }),
                 ...(email && { email }),
-                ...(role && { role })
+                ...(role && req.user.role === 'ADMIN' && { role }) // Only ADMIN can change roles
             },
             include: { permissions: true }
         });
@@ -181,23 +197,29 @@ export const updateUser = async (req, res) => {
 export const deleteUser = async (req, res) => {
     try {
         const { userId } = req.params;
+        console.log(`[AdminDeleteUser] TargetID: ${userId}, ReqUser:`, req.user);
 
-        // Check if user exists and get their posts
         const user = await prisma.user.findUnique({
             where: { id: Number(userId) },
             include: { posts: true }
         });
 
         if (!user) {
+            console.error(`[AdminDeleteUser] Error: User not found`);
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Prevent deleting ADMIN users
         if (user.role === 'ADMIN') {
             return res.status(403).json({ error: 'Cannot delete admin users' });
         }
 
-        // Delete user (cascade will handle related data based on schema)
+        // Sub-admins can only delete regular USERS
+        if (req.user.role === 'SUB_ADMIN' && user.role !== 'USER') {
+            console.warn(`[AdminDeleteUser] Denied: Sub-admin tried to delete ${user.role}`);
+            return res.status(403).json({ error: 'Sub-admins can only delete regular users' });
+        }
+
+        // Delete user  
         await prisma.user.delete({
             where: { id: Number(userId) }
         });
