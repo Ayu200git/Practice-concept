@@ -1,0 +1,24 @@
+<svg width="200" height="220" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Shield -->
+  <path d="M100 20 L140 34 V72 C140 100 115 125 100 136 C85 125 60 100 60 72 V34 Z" fill="#1E88E5"></path>
+
+  <!-- Check -->
+  <path d="M82 74 L94 86 L118 58" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- Chat Bubble -->
+  <rect x="52" y="96" width="96" height="48" rx="16" fill="#2196F3"></rect>
+  <polygon points="88,144 100,132 112,144" fill="#2196F3"></polygon>
+
+  <!-- Pulse Line -->
+  <path d="M66 120 H84 L90 112 L96 128 L102 120 H130" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <!-- Role Indicator -->
+  <circle cx="134" cy="94" r="6" fill="#1E88E5"></circle>
+
+  <!-- App Name -->
+  <text x="100" y="190" text-anchor="middle" font-size="36" font-weight="700" fill="#1565C0" font-family="Inter, system-ui, -apple-system, sans-serif">
+    PermiPulse
+  </text>
+
+</svg>
