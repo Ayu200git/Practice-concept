@@ -19,7 +19,13 @@ const Login = () => {
             const { data } = await api.post('/auth/login', { email, password });
             login(data.token);
             toast.success('Login successful');
-            navigate('/');
+
+            const decodedToken = JSON.parse(atob(data.token.split('.')[1]));
+            if (decodedToken.role === 'USER') {
+                navigate('/posts');
+            } else {
+                navigate('/');
+            }
         } catch (error) {
             toast.error(error.response?.data?.error || 'Login failed');
         } finally {
@@ -31,11 +37,13 @@ const Login = () => {
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 border border-slate-100">
                 <div className="text-center mb-8">
-                    <div className="h-16 w-16 bg-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-sky-200">
-                        <LogIn className="text-white" size={32} />
+                    <div className="mb-4 flex flex-col items-center">
+                        <img src="/permi1.svg" alt="Permipulse Logo" className="h-16 w-16 drop-shadow-lg" />
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900">Welcome Back</h1>
-                    <p className="text-slate-500 mt-2">Sign in to your dashboard</p>
+                    <h1 className="text-3xl font-black bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
+                        Permipulse
+                    </h1>
+                    <p className="text-slate-500 mt-2 font-medium">Securely sign in to your workspace</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">

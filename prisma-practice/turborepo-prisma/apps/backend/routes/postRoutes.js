@@ -20,9 +20,18 @@ router.post("/create-post", authenticateJWT, async (req, res) => {
             data: {
                 title,
                 content,
-                userId: parseInt(userId),
+                userId: Number(userId),
+            },
+            include: {
+                user: {
+                    select: { name: true, role: true }
+                }
             }
         });
+
+        // Broadcast real-time update
+        req.io.emit('postCreated', post);
+
         res.json(post);
     } catch (err) {
         console.error("Post creation error:", err);
@@ -36,9 +45,10 @@ router.post("/create-post", authenticateJWT, async (req, res) => {
 
 router.get("/", authenticateJWT, async (req, res) => {
     try {
+        const userId = req.user.userId || req.user.id || req.user.sub;
         const posts = await prisma.post.findMany({
             where: {
-                userId: req.user.userId,
+                userId: Number(userId),
             },
             include: {
                 user: {
@@ -75,23 +85,42 @@ router.get("/all", authenticateJWT, async (req, res) => {
     }
 });
 
-// Update a post (Admin or post owner)
+// Update a post 
 router.put("/:id", authenticateJWT, async (req, res) => {
     try {
         const { id } = req.params;
         const { title, content } = req.body;
         const userId = req.user.userId || req.user.id || req.user.sub;
+        console.log(`[PostUpdateAuthorization] PostID: ${id}, ReqUser:`, req.user);
 
-        // Check if user is admin or post owner
-        const post = await prisma.post.findUnique({ where: { id: parseInt(id) } });
+        const post = await prisma.post.findUnique({ where: { id: Number(id) } });
         if (!post) return res.status(404).json({ error: "Post not found" });
 
-        if (req.user.role !== 'ADMIN' && post.userId !== parseInt(userId)) {
+        let isAuthorized = false;
+        if (req.user.role === 'ADMIN') {
+            isAuthorized = true;
+        } else if (Number(post.userId) === Number(userId)) {
+            console.log(`[PostUpdateAuthorization] User is owner`);
+            isAuthorized = true;
+        } else if (req.user.role === 'SUB_ADMIN') {
+            const subAdmin = await prisma.user.findUnique({
+                where: { id: Number(userId) },
+                include: { permissions: true }
+            });
+            const hasPerm = subAdmin?.permissions.some(p => p.name === 'UPDATE_POST');
+            console.log(`[PostUpdateAuthorization] SubAdmin permissions:`, subAdmin?.permissions.map(p => p.name));
+            if (hasPerm) {
+                isAuthorized = true;
+            }
+        }
+
+        console.log(`[PostUpdateAuthorization] Status: ${isAuthorized ? 'AUTHORIZED' : 'FORBIDDEN'}`);
+        if (!isAuthorized) {
             return res.status(403).json({ error: "Not authorized to update this post" });
         }
 
         const updatedPost = await prisma.post.update({
-            where: { id: parseInt(id) },
+            where: { id: Number(id) },
             data: { title, content },
             include: {
                 user: {
@@ -99,27 +128,54 @@ router.put("/:id", authenticateJWT, async (req, res) => {
                 }
             }
         });
+
+        // Broadcast real-time update
+        req.io.emit('postUpdated', updatedPost);
+
         res.json(updatedPost);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// Delete a post (Admin or post owner)
+// Delete a post  
 router.delete("/:id", authenticateJWT, async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId || req.user.id || req.user.sub;
+        console.log(`[PostDeleteAuthorization] PostID: ${id}, ReqUser:`, req.user);
 
-        // Check if user is admin or post owner
-        const post = await prisma.post.findUnique({ where: { id: parseInt(id) } });
+        const post = await prisma.post.findUnique({ where: { id: Number(id) } });
         if (!post) return res.status(404).json({ error: "Post not found" });
 
-        if (req.user.role !== 'ADMIN' && post.userId !== parseInt(userId)) {
+        let isAuthorized = false;
+        if (req.user.role === 'ADMIN') {
+            isAuthorized = true;
+        } else if (Number(post.userId) === Number(userId)) {
+            console.log(`[PostDeleteAuthorization] User is owner`);
+            isAuthorized = true;
+        } else if (req.user.role === 'SUB_ADMIN') {
+            const subAdmin = await prisma.user.findUnique({
+                where: { id: Number(userId) },
+                include: { permissions: true }
+            });
+            const hasPerm = subAdmin?.permissions.some(p => p.name === 'DELETE_POST');
+            console.log(`[PostDeleteAuthorization] SubAdmin permissions:`, subAdmin?.permissions.map(p => p.name));
+            if (hasPerm) {
+                isAuthorized = true;
+            }
+        }
+
+        console.log(`[PostDeleteAuthorization] Status: ${isAuthorized ? 'AUTHORIZED' : 'FORBIDDEN'}`);
+        if (!isAuthorized) {
             return res.status(403).json({ error: "Not authorized to delete this post" });
         }
 
-        await prisma.post.delete({ where: { id: parseInt(id) } });
+        await prisma.post.delete({ where: { id: Number(id) } });
+
+        // Broadcast real-time update
+        req.io.emit('postDeleted', id);
+
         res.json({ message: "Post deleted successfully" });
     } catch (err) {
         res.status(500).json({ error: err.message });

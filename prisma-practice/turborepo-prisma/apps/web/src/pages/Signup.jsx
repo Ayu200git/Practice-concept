@@ -32,11 +32,13 @@ const Signup = () => {
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 border border-slate-100">
                 <div className="text-center mb-8">
-                    <div className="h-16 w-16 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
-                        <UserPlus className="text-white" size={32} />
+                    <div className="mb-4 flex flex-col items-center">
+                        <img src="/permi1.svg" alt="Permipulse Logo" className="h-16 w-16 drop-shadow-lg" />
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900">Create Account</h1>
-                    <p className="text-slate-500 mt-2">Join our RBAC community</p>
+                    <h1 className="text-3xl font-black bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent">
+                        Permipulse
+                    </h1>
+                    <p className="text-slate-500 mt-2 font-medium">Join our secure community</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -48,7 +50,7 @@ const Signup = () => {
                                 type="text"
                                 required
                                 className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
-                                placeholder="Ayush..."
+                                placeholder="Name..."
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             />
